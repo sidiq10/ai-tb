@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Activity, UploadCloud, BrainCircuit, ScanSearch, ShieldCheck,
   ArrowRight, RefreshCcw, AlertTriangle, CheckCircle2
@@ -10,13 +10,10 @@ function App() {
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState("");
   const [confidence, setConfidence] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted] = useState(true);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -25,6 +22,7 @@ function App() {
       setPreview(URL.createObjectURL(selectedFile));
       setResult("");
       setConfidence("");
+      setError("");
     }
   };
 
@@ -35,6 +33,9 @@ function App() {
     }
 
     setLoading(true);
+    setError("");
+    setResult("");
+    setConfidence("");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -48,18 +49,17 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.error || "Terjadi kesalahan pada server.");
-        setLoading(false);
+        setError(data.error || "Terjadi kesalahan pada server.");
         return;
       }
 
       setResult(data.result);
       setConfidence(data.confidence.toFixed(2));
-    } catch (error) {
-      alert("Terjadi kesalahan saat memproses data. Pastikan backend Python menyala.");
+    } catch {
+      setError("Terjadi kesalahan saat memproses data. Pastikan backend Python menyala.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const resetDetector = () => {
@@ -67,6 +67,8 @@ function App() {
     setPreview(null);
     setResult("");
     setConfidence("");
+    setError("");
+    setLoading(false);
   };
 
   return (
@@ -216,6 +218,15 @@ function App() {
                 </button>
               )}
             </div>
+
+            {error && (
+              <div className="error-message" role="alert">
+                <p>{error}</p>
+                <button onClick={resetDetector} className="result-reset-button">
+                  <RefreshCcw size={18} /> Analisis Citra Lainnya
+                </button>
+              </div>
+            )}
 
             {result && (
               <div className={`result-box ${result === "TB" ? "tb-positive" : "tb-negative"}`}>
